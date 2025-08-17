@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.9
+    hooks:
+      - id: ruff-check
+        entry: uvx ruff check --force-exclude
+        language: system
+      - id: ruff-format
+        entry: uvx ruff format --force-exclude
+        language: system
+
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: Check type
+        entry: uvx ty check
+        language: system
+        types_or: [python]

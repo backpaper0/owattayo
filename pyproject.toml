@@ -1,0 +1,11 @@
+[project]
+name = "owattayo"
+version = "0.1.0"
+description = "Claude Codeの作業完了をDiscordで通知するためのアプリケーション。"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.116.1",
+    "pydantic-settings>=2.10.1",
+    "requests>=2.32.4",
+]
