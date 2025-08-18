@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -X POST http://owattayo:8000/notify -H \"Content-Type: application/json\" -d @-"
+          }
+        ]
+      }
+    ]
+  }
+}
