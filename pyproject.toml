@@ -5,7 +5,9 @@ description = "Claude Codeの作業完了をDiscordで通知するためのア�
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiofiles>=24.1.0",
     "fastapi[standard]>=0.116.1",
+    "pydantic>=2.11.7",
     "pydantic-settings>=2.10.1",
     "requests>=2.32.4",
 ]
