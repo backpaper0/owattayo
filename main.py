@@ -23,11 +23,18 @@ settings = Settings()
 app = FastAPI()
 
 
-async def extract_prompt(transcript_path: str | None) -> str | None:
-    if transcript_path and os.path.exists(transcript_path):
+async def extract_prompt(event: StopEvent | None) -> str | None:
+    if (
+        settings.show_prompt
+        and event
+        and event.transcript_path
+        and os.path.exists(event.transcript_path)
+    ):
         try:
             last_message = None
-            async with aiofiles.open(transcript_path, mode="r", encoding="utf-8") as f:
+            async with aiofiles.open(
+                event.transcript_path, mode="r", encoding="utf-8"
+            ) as f:
                 async for line in f:
                     line = line.strip()
                     if not line:
@@ -45,8 +52,8 @@ async def extract_prompt(transcript_path: str | None) -> str | None:
 
 
 @app.post("/notify")
-async def notify(event: StopEvent):
-    message = await extract_prompt(event.transcript_path)
+async def notify(event: StopEvent | None = None):
+    message = await extract_prompt(event)
     content = settings.completion_message
     if message:
         content = f"{content}\nprompt: {message}"
