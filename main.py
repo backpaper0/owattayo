@@ -1,16 +1,22 @@
 import json
+from typing import AsyncGenerator
+from fastapi.responses import FileResponse
 import requests
 from fastapi import FastAPI
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
 import aiofiles
 import os.path
+import asyncio
+
+from sse_starlette import EventSourceResponse
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    discord_webhook_url: str = ""
-    completion_message: str = "Claude Code work completed."
+    discord_webhook_url: str | None = None
+    title: str = "Claude Code work completed."
+    message_template: str = "prompt: {prompt}"
     show_prompt: bool = True
 
 
@@ -18,7 +24,32 @@ class StopEvent(BaseModel):
     transcript_path: str | None = None
 
 
+class NotificationManager:
+    def __init__(self):
+        self.clients: list[asyncio.Queue] = []
+
+    async def add_client(self) -> AsyncGenerator[dict, None]:
+        queue: asyncio.Queue = asyncio.Queue()
+        self.clients.append(queue)
+        try:
+            while True:
+                data = await queue.get()
+                yield data
+        finally:
+            self.clients.remove(queue)
+
+    async def notify_all(self, title: str, message: str | None):
+        notification_data = {
+            "title": title,
+            "message": message,
+        }
+
+        for client in self.clients:
+            await client.put(notification_data)
+
+
 settings = Settings()
+notification_manager = NotificationManager()
 
 app = FastAPI()
 
@@ -53,12 +84,35 @@ async def extract_prompt(event: StopEvent | None) -> str | None:
 
 @app.post("/notify")
 async def notify(event: StopEvent | None = None):
-    message = await extract_prompt(event)
-    content = settings.completion_message
-    if message:
-        content = f"{content}\nprompt: {message}"
-    requests.post(
-        settings.discord_webhook_url,
-        json={"content": content},
-    )
+    prompt = await extract_prompt(event)
+
+    title = settings.title
+    message = settings.message_template.format(prompt=prompt) if prompt else None
+
+    await notification_manager.notify_all(title, message)
+
+    if settings.discord_webhook_url:
+        content = f"{title}\n{message}" if message else title
+        requests.post(
+            settings.discord_webhook_url,
+            json={"content": content},
+        )
     return {"status": "OK"}
+
+
+@app.get("/")
+@app.get("/index.html")
+async def get_index():
+    return FileResponse("index.html")
+
+
+@app.get("/notifications")
+async def get_notifications():
+    async def event_generator():
+        async for content in notification_manager.add_client():
+            yield {
+                "event": "message",
+                "data": json.dumps(content, ensure_ascii=False),
+            }
+
+    return EventSourceResponse(event_generator())
