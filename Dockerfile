@@ -22,6 +22,6 @@ COPY --from=builder /app/requirements.txt /app
 RUN pip install --no-index --find-links=/wheels -r requirements.txt
 
 COPY main.py /app
-COPY index.html /app
+COPY static /app/static
 
 CMD ["sh", "-c", "fastapi run --host ${FASTAPI_HOST} --port ${FASTAPI_PORT}"]

@@ -1,6 +1,6 @@
 import json
 from typing import AsyncGenerator
-from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 import requests
 from fastapi import FastAPI
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     discord_webhook_url: str | None = None
     title: str = "Claude Code work completed."
     message_template: str = "prompt: {prompt}"
-    show_prompt: bool = True
 
 
 class StopEvent(BaseModel):
@@ -55,12 +54,7 @@ app = FastAPI()
 
 
 async def extract_prompt(event: StopEvent | None) -> str | None:
-    if (
-        settings.show_prompt
-        and event
-        and event.transcript_path
-        and os.path.exists(event.transcript_path)
-    ):
+    if event and event.transcript_path and os.path.exists(event.transcript_path):
         try:
             last_message = None
             async with aiofiles.open(
@@ -87,7 +81,11 @@ async def notify(event: StopEvent | None = None):
     prompt = await extract_prompt(event)
 
     title = settings.title
-    message = settings.message_template.format(prompt=prompt) if prompt else None
+    message = (
+        settings.message_template.format(prompt=prompt)
+        if prompt
+        else settings.message_template
+    )
 
     await notification_manager.notify_all(title, message)
 
@@ -100,12 +98,6 @@ async def notify(event: StopEvent | None = None):
     return {"status": "OK"}
 
 
-@app.get("/")
-@app.get("/index.html")
-async def get_index():
-    return FileResponse("index.html")
-
-
 @app.get("/notifications")
 async def get_notifications():
     async def event_generator():
@@ -116,3 +108,6 @@ async def get_notifications():
             }
 
     return EventSourceResponse(event_generator())
+
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
