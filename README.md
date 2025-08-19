@@ -92,7 +92,7 @@ Claude CodeのHookシステムと組み合わせて使用します：
         "hooks": [
           {
             "type": "command",
-            "command": "curl -X POST http://owattayo:8000/notify -H \"Content-Type: application/json\" -d @-"
+            "command": "curl -X POST http://localhost:8000/notify -H \"Content-Type: application/json\" -d @-"
           }
         ]
       }
