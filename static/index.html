@@ -223,9 +223,10 @@
             }
         }
 
-        function showNotification({ title, message }) {
+        function showNotification({ notifier, title, message }) {
             if (notificationPermission === 'granted') {
-                const notification = new Notification(title, {
+                const notificationTitle = notifier ? `[${notifier}] ${title}` : title;
+                const notification = new Notification(notificationTitle, {
                     body: message
                 });
 
@@ -234,9 +235,15 @@
                     notification.close();
                 };
 
-                addLog('通知を表示しました: ' + message);
+                const logMessage = notifier 
+                    ? `通知を表示しました: [${notifier}] ${message || title}`
+                    : `通知を表示しました: ${message || title}`;
+                addLog(logMessage);
             } else {
-                addLog('通知権限がないため表示できません: ' + message);
+                const logMessage = notifier 
+                    ? `通知権限がないため表示できません: [${notifier}] ${message || title}`
+                    : `通知権限がないため表示できません: ${message || title}`;
+                addLog(logMessage);
             }
         }
 

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
 
 class StopEvent(BaseModel):
     transcript_path: str | None = None
+    notifier: str | None = None
+    prompt: str | None = None
 
 
 class NotificationManager:
@@ -37,8 +39,9 @@ class NotificationManager:
         finally:
             self.clients.remove(queue)
 
-    async def notify_all(self, title: str, message: str | None):
+    async def notify_all(self, notifier: str | None, title: str, message: str | None):
         notification_data = {
+            "notifier": notifier,
             "title": title,
             "message": message,
         }
@@ -54,25 +57,28 @@ app = FastAPI()
 
 
 async def extract_prompt(event: StopEvent | None) -> str | None:
-    if event and event.transcript_path and os.path.exists(event.transcript_path):
-        try:
-            last_message = None
-            async with aiofiles.open(
-                event.transcript_path, mode="r", encoding="utf-8"
-            ) as f:
-                async for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    log = json.loads(line)
-                    if isinstance(log, dict):
-                        if log.get("type") == "user" and "toolUseResult" not in log:
-                            message = log.get("message", {}).get("content")
-                            if isinstance(message, str):
-                                last_message = message
-            return last_message
-        except Exception:
-            pass
+    if event:
+        if event.prompt:
+            return event.prompt
+        if event.transcript_path and os.path.exists(event.transcript_path):
+            try:
+                last_message = None
+                async with aiofiles.open(
+                    event.transcript_path, mode="r", encoding="utf-8"
+                ) as f:
+                    async for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        log = json.loads(line)
+                        if isinstance(log, dict):
+                            if log.get("type") == "user" and "toolUseResult" not in log:
+                                message = log.get("message", {}).get("content")
+                                if isinstance(message, str):
+                                    last_message = message
+                return last_message
+            except Exception:
+                pass
     return None
 
 
@@ -80,17 +86,16 @@ async def extract_prompt(event: StopEvent | None) -> str | None:
 async def notify(event: StopEvent | None = None):
     prompt = await extract_prompt(event)
 
+    notifier = event.notifier if event else None
     title = settings.title
-    message = (
-        settings.message_template.format(prompt=prompt)
-        if prompt
-        else settings.message_template
-    )
+    message = settings.message_template.format(prompt=prompt) if prompt else None
 
-    await notification_manager.notify_all(title, message)
+    await notification_manager.notify_all(notifier, title, message)
 
     if settings.discord_webhook_url:
-        content = f"{title}\n{message}" if message else title
+        content = f"[{notifier}] " if notifier else ""
+        content += title
+        content += f"\n{message}" if message else ""
         requests.post(
             settings.discord_webhook_url,
             json={"content": content},
