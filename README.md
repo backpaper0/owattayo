@@ -1,5 +1,10 @@
 # Owattayo
 
+> [!NOTE]
+> 「[Claude Codeをなるべく安全に動かすためのDev Containerを構築した](https://zenn.dev/backpaper0/articles/038838c4cec2a8)」からこのリポジトリを訪れた方へ。
+> 記事を書いてからも開発を進めているため、本リポジトリの内容は記事の内容と乖離していると思います。
+> 記事執筆時点の本リポジトリがどのような状態だったか見たい場合は[`v1`タグ](https://github.com/backpaper0/owattayo/tree/v1)をご覧ください。
+
 Claude Codeの作業完了を通知するFastAPIアプリケーションです。Discordウェブフックとブラウザ通知（Server-Sent Events）の両方をサポートします。
 
 ## 機能
