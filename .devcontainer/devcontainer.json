@@ -1,7 +1,11 @@
 {
-	"name": "Owattayo",
-	"dockerComposeFile": "compose.yaml",
-	"service": "claude-code",
+	"name": "Claude Code in Dev Container example",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+	"runArgs": [
+		"--cap-add=NET_ADMIN",
+		"--cap-add=NET_RAW",
+		"--network=devcontainers"
+	],
 	"features": {
 		"ghcr.io/devcontainers/features/python": {
 			"version": "none",
@@ -9,19 +13,17 @@
 		},
 		"ghcr.io/devcontainers/features/node": {},
 		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-		"./firewall": {
-			"username": "vscode"
-		},
-		"./workspace-owner": {
-			"username": "vscode"
-		}
+		"./setup-for-claude-code": {},
+		"./workspace-owner": {}
 	},
 	"containerEnv": {
 		"CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+		"DISABLE_AUTOUPDATER": "1",
 		"PROMPT_COMMAND": "history -a",
 		"HISTFILE": "/commandhistory/.bash_history",
 		"UV_LINK_MODE": "copy",
-		"OWATTAYO_NOTIFIER": "${localWorkspaceFolderBasename}"
+		"OWATTAYO_NOTIFIER": "${localWorkspaceFolderBasename}",
+		"SSH_AUTH_SOCK": "/ssh-agent"
 	},
 	"customizations": {
 		"vscode": {
@@ -40,10 +42,11 @@
 		}
 	},
 	"remoteUser": "vscode",
-	"workspaceFolder": "/workspace",
-	"postCreateCommand": "sudo /usr/local/bin/init-firewall.sh && sudo /usr/local/bin/update-workspace-owner.sh vscode",
+	"postStartCommand": "sudo /usr/local/bin/init-firewall.sh && sudo /usr/local/bin/update-workspace-owner.sh",
+	"waitFor": "postStartCommand",
 	"mounts": [
 		"source=claude-code-bashhistory,target=/commandhistory,type=volume",
-		"source=claude-code-config,target=/home/vscode/.claude,type=volume"
+		"source=claude-code-config,target=/home/vscode/.claude,type=volume",
+		"source=${env:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
 	]
 }
