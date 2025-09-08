@@ -223,15 +223,20 @@
             }
         }
 
-        function showNotification({ notifier, title, message }) {
+        function showNotification({ notifier, title, message, url }) {
             if (notificationPermission === 'granted') {
                 const notificationTitle = notifier ? `[${notifier}] ${title}` : title;
                 const notification = new Notification(notificationTitle, {
-                    body: message
+                    body: message,
+                    requireInteraction: true
                 });
 
                 notification.onclick = function () {
-                    window.focus();
+                    if (url) {
+                        window.open(url, '_blank');
+                    } else {
+                        window.focus();
+                    }
                     notification.close();
                 };
 

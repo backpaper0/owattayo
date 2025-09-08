@@ -23,6 +23,7 @@ class StopEvent(BaseModel):
     transcript_path: str | None = None
     notifier: str | None = None
     prompt: str | None = None
+    url: str | None = None
 
 
 class NotificationManager:
@@ -39,11 +40,18 @@ class NotificationManager:
         finally:
             self.clients.remove(queue)
 
-    async def notify_all(self, notifier: str | None, title: str, message: str | None):
+    async def notify_all(
+        self,
+        notifier: str | None,
+        title: str,
+        message: str | None,
+        url: str | None = None,
+    ):
         notification_data = {
             "notifier": notifier,
             "title": title,
             "message": message,
+            "url": url,
         }
 
         for client in self.clients:
@@ -89,8 +97,9 @@ async def notify(event: StopEvent | None = None):
     notifier = event.notifier if event else None
     title = settings.title
     message = settings.message_template.format(prompt=prompt) if prompt else None
+    url = event.url if event else None
 
-    await notification_manager.notify_all(notifier, title, message)
+    await notification_manager.notify_all(notifier, title, message, url)
 
     if settings.discord_webhook_url:
         content = f"[{notifier}] " if notifier else ""
