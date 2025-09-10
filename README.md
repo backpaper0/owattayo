@@ -128,7 +128,7 @@ Claude Codeの設定ファイルに以下を追加：
         "hooks": [
           {
             "type": "command",
-            "command": "curl -X POST http://localhost:8000/notify -H \"Content-Type: application/json\" -d '{\"title\": \"Claude Code 作業完了\"}'"
+            "command": "jq -r '.transcript_path' | xargs -I{} cat {} | jq -c 'select(.type == \"user\" and (has(\"toolUseResult\") | not)) | { body: .message.content }' | tail -n 1 | jq -c --arg title \"${NOTIFICATION_TITLE}\" '. + { title: $title }' | curl --connect-timeout 5 -X POST \"${NOTIFICATION_ENDPOINT}\" -H 'Content-Type: application/json' -d @-"
           }
         ]
       }
