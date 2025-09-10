@@ -239,14 +239,14 @@
                     notification.close();
                 };
 
-                const logMessage = notifier 
-                    ? `通知を表示しました: [${notifier}] ${message || title}`
-                    : `通知を表示しました: ${message || title}`;
+                const logMessage = body 
+                    ? `通知を表示しました: ${title} - ${body}`
+                    : `通知を表示しました: ${title}`;
                 addLog(logMessage);
             } else {
-                const logMessage = notifier 
-                    ? `通知権限がないため表示できません: [${notifier}] ${message || title}`
-                    : `通知権限がないため表示できません: ${message || title}`;
+                const logMessage = body 
+                    ? `通知権限がないため表示できません: ${title} - ${body}`
+                    : `通知権限がないため表示できません: ${title}`;
                 addLog(logMessage);
             }
         }
