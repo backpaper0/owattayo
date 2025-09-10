@@ -5,8 +5,6 @@ import requests
 from fastapi import FastAPI
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import BaseModel
-import aiofiles
-import os.path
 import asyncio
 
 from sse_starlette import EventSourceResponse
@@ -15,14 +13,12 @@ from sse_starlette import EventSourceResponse
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     discord_webhook_url: str | None = None
-    title: str = "Claude Code work completed."
-    message_template: str = "prompt: {prompt}"
+    default_title: str = "Notification"
 
 
-class StopEvent(BaseModel):
-    transcript_path: str | None = None
-    notifier: str | None = None
-    prompt: str | None = None
+class Notification(BaseModel):
+    title: str
+    body: str | None = None
     url: str | None = None
 
 
@@ -42,15 +38,13 @@ class NotificationManager:
 
     async def notify_all(
         self,
-        notifier: str | None,
         title: str,
-        message: str | None,
+        body: str | None,
         url: str | None = None,
     ):
         notification_data = {
-            "notifier": notifier,
             "title": title,
-            "message": message,
+            "body": body,
             "url": url,
         }
 
@@ -64,47 +58,18 @@ notification_manager = NotificationManager()
 app = FastAPI()
 
 
-async def extract_prompt(event: StopEvent | None) -> str | None:
-    if event:
-        if event.prompt:
-            return event.prompt
-        if event.transcript_path and os.path.exists(event.transcript_path):
-            try:
-                last_message = None
-                async with aiofiles.open(
-                    event.transcript_path, mode="r", encoding="utf-8"
-                ) as f:
-                    async for line in f:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        log = json.loads(line)
-                        if isinstance(log, dict):
-                            if log.get("type") == "user" and "toolUseResult" not in log:
-                                message = log.get("message", {}).get("content")
-                                if isinstance(message, str):
-                                    last_message = message
-                return last_message
-            except Exception:
-                pass
-    return None
-
-
 @app.post("/notify")
-async def notify(event: StopEvent | None = None):
-    prompt = await extract_prompt(event)
-
-    notifier = event.notifier if event else None
-    title = settings.title
-    message = settings.message_template.format(prompt=prompt) if prompt else None
+async def notify(event: Notification | None = None):
+    title = event.title if event else settings.default_title
+    body = event.body if event else None
     url = event.url if event else None
 
-    await notification_manager.notify_all(notifier, title, message, url)
+    await notification_manager.notify_all(title, body, url)
 
     if settings.discord_webhook_url:
-        content = f"[{notifier}] " if notifier else ""
-        content += title
-        content += f"\n{message}" if message else ""
+        content = title
+        content += f"\n{body}" if body else ""
+        content += f"\n{url}" if url else ""
         requests.post(
             settings.discord_webhook_url,
             json={"content": content},

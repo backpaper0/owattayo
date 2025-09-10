@@ -223,11 +223,10 @@
             }
         }
 
-        function showNotification({ notifier, title, message, url }) {
+        function showNotification({ title, body, url }) {
             if (notificationPermission === 'granted') {
-                const notificationTitle = notifier ? `[${notifier}] ${title}` : title;
-                const notification = new Notification(notificationTitle, {
-                    body: message,
+                const notification = new Notification(title, {
+                    body,
                     requireInteraction: true
                 });
 
